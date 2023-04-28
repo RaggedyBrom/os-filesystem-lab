@@ -289,7 +289,6 @@ create(char *path, short type, short major, short minor)
   }
 
   iunlockput(dp);
-  printf("create: returning created inode name - %s, i# - %d unlocked\n", name, ip->inum);
   return ip;
 
  fail:
@@ -309,6 +308,7 @@ sys_open(void)
   struct file *f;
   struct inode *ip;
   int n;
+  int depth = 0;        // symlink depth
 
   argint(1, &omode);
   if((n = argstr(0, path, MAXPATH)) < 0)
@@ -339,6 +339,32 @@ sys_open(void)
     iunlockput(ip);
     end_op();
     return -1;
+  }
+
+  // If the inode is a symlink, follow the link(s) until we reach
+  // a node that is not a symlink
+  while (ip->type == T_SYMLINK && !(omode & O_NOFOLLOW))
+  {
+    // Error out if link depth exceeds 10
+    if(depth > 10)
+    {
+      iunlockput(ip);
+      end_op();
+      return -1;
+    }
+
+    // Read the data from the current inode and store it in path
+    readi(ip, 0, (uint64)path, 0, sizeof(path));
+    iunlockput(ip);
+
+    // Use the path to fetch the linked inode
+    if ((ip = namei(path)) == 0)
+    {
+      end_op();
+      return -1;
+    }
+    ilock(ip);
+    depth++;
   }
 
   if((f = filealloc()) == 0 || (fd = fdalloc(f)) < 0){
