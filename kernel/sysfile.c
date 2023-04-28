@@ -289,7 +289,7 @@ create(char *path, short type, short major, short minor)
   }
 
   iunlockput(dp);
-
+  printf("create: returning created inode name - %s, i# - %d unlocked\n", name, ip->inum);
   return ip;
 
  fail:
@@ -521,7 +521,6 @@ uint64 sys_symlink(void)
     return -1;
   }
 
-  ilock(ip);
   // Store the target in the data blocks for the inode
   if (writei(ip, 0, (uint64)target, 0, sizeof(target)) < sizeof(target))
   {
