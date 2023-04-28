@@ -504,8 +504,34 @@ sys_pipe(void)
   return 0;
 }
 
-
+// Create a symbolic link at a specified path and referring to a specified target
 uint64 sys_symlink(void)
 {
+  char target[MAXPATH], path[MAXPATH];
+  struct inode *ip;
+
+  // Grab the path and target arguments that were passed to the system call
+  if (argstr(0, target, MAXPATH) < 0 || argstr(1, path, MAXPATH) < 0)
+    return -1;
+
+  begin_op();
+  // Create a new inode at the given path
+  if((ip = create(path, T_SYMLINK, 0, 0)) == 0){
+    end_op();
+    return -1;
+  }
+
+  ilock(ip);
+  // Store the target in the data blocks for the inode
+  if (writei(ip, 0, (uint64)target, 0, sizeof(target)) < sizeof(target))
+  {
+    ip->nlink = 0;
+    iunlockput(ip);
+    end_op();
+    return -1;
+  }
+
+  iunlockput(ip);
+  end_op();
   return 0;
 }
