@@ -1,0 +1,4 @@
+Large files -       1.5 hrs
+Symbolic links -    3.5 hrs
+-----------------------------
+Total time -        5.0 hrs
